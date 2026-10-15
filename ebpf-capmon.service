@@ -1,0 +1,50 @@
+[Unit]
+Description=eBPF Linux Capabilities Monitor
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/ebpf-capmon -output journal
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=10s
+
+# Create with: useradd -r -s /usr/sbin/nologin -d / ebpf-capmon
+# Attaching fentry/tp_btf programs needs CAP_BPF + CAP_PERFMON (kernel >= 5.8);
+# CAP_SYS_RESOURCE covers memlock accounting on older kernels.
+User=ebpf-capmon
+Group=ebpf-capmon
+CapabilityBoundingSet=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
+AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_RESOURCE
+NoNewPrivileges=yes
+
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateMounts=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+ProtectClock=yes
+RestrictSUIDSGID=yes
+# For -output file, allow the log directory:
+#ReadWritePaths=/var/log
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+PrivateIPC=yes
+RemoveIPC=yes
+SystemCallFilter=@system-service bpf perf_event_open
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictRealtime=yes
+MemoryDenyWriteExecute=yes
+LimitCORE=0
+LimitMEMLOCK=infinity
+MemoryMax=128M
+TasksMax=64
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target
